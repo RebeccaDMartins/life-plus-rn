@@ -1,23 +1,15 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable } from "react-native";
-import { router } from "expo-router";
 
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
-      <Tabs.Screen
-        name="saudefisica"
-        options={{
-          title: "Saúde Física",
-          tabBarIcon: ({ size }) => <Ionicons name="barbell" size={size} />,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 12 }}>
-              <Ionicons name="arrow-back" size={24} />
-            </Pressable>
-          ),
-        }}
-      />
+    <Tabs screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="saudefisica"   options={{ title: "Física",   tabBarIcon: ({size,color}) => <Ionicons name="barbell" size={size} color={color} /> }} />
+      <Tabs.Screen name="saudemental"   options={{ title: "Mental",   tabBarIcon: ({size,color}) => <Ionicons name="happy"   size={size} color={color} /> }} />
+      <Tabs.Screen name="alimentacao"   options={{ title: "Aliment.", tabBarIcon: ({size,color}) => <Ionicons name="nutrition"size={size} color={color} /> }} />
+      <Tabs.Screen name="sono"          options={{ title: "Sono",     tabBarIcon: ({size,color}) => <Ionicons name="moon"    size={size} color={color} /> }} />
+      <Tabs.Screen name="relatorios"    options={{ title: "Relat.",   tabBarIcon: ({size,color}) => <Ionicons name="stats-chart" size={size} color={color} /> }} />
+      <Tabs.Screen name="perfil"        options={{ title: "Perfil",   tabBarIcon: ({size,color}) => <Ionicons name="person"  size={size} color={color} /> }} />
     </Tabs>
   );
 }

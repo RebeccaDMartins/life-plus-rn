@@ -6,4 +6,7 @@ export const colors = {
   text:    "#222222",
   subtext: "#555555",
   border:  "#E6E6E6",
+  success: "#2e7d32",
+  danger:  "#c62828",
 };
+

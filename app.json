@@ -38,8 +38,14 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font"
     ],
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
