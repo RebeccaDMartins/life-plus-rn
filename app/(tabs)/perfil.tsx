@@ -6,9 +6,12 @@ import { router } from "expo-router";
 export default function Perfil() {
     async function limpar() {
         await AsyncStorage.clear();
-        Alert.alert("Limpou!", "Todos os dados locais foram apagados.");
+        Alert.alert("Suas informações foram apagadas!");
     }
-    function sair() { router.replace("/login"); }
+    function sair() {
+        router.dismissAll(); 
+        router.replace("/"); 
+    }
 
     return (
         <Screen>
