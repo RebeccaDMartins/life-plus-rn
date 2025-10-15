@@ -4,11 +4,15 @@ import { Button, Card, Input, Row, Screen, Spacer, Title } from "../../component
 import { load, save } from "../../lib/storage";
 
 type TabagismoData = {
-    fumando: boolean;       
-    cigsDia: number;         
-    precoMaco: number;      
-    cigsPorMaco: number;     
-    dataParada?: string;     
+    fumando: boolean;
+    /** maços por dia (não cigarros) */
+    cigsDia?: number;          // opcional
+    /** preço do maço em R$ */
+    precoMaco?: number;        // opcional
+    /** cigarros por maço (ex.: 20) */
+    cigsPorMaco?: number;      // opcional
+    /** ISO date YYYY-MM-DD */
+    dataParada?: string;
 };
 
 const STORAGE_KEY = "tabagismo:settings";
@@ -16,9 +20,9 @@ const STORAGE_KEY = "tabagismo:settings";
 export default function Tabagismo() {
     const [data, setData] = useState<TabagismoData>({
         fumando: true,
-        cigsDia: 10,
-        precoMaco: 12,
-        cigsPorMaco: 20,
+        cigsDia: undefined,
+        precoMaco: undefined,
+        cigsPorMaco: undefined,
         dataParada: "",
     });
 
@@ -34,27 +38,39 @@ export default function Tabagismo() {
         })();
     }, []);
 
-    function parseNum(v: string) {
-        const n = Number(String(v).replace(",", "."));
-        return Number.isFinite(n) ? n : 0;
+    // transforma string em número OU undefined quando vazio
+    function parseOptionalNumber(v: string): number | undefined {
+        const raw = v.trim();
+        if (!raw) return undefined;
+        const n = Number(raw.replace(",", "."));
+        return Number.isFinite(n) ? n : undefined;
     }
 
-    // Cálculos
+    // gasto diário = maços/dia * preço do maço
     const dailyCost = useMemo(() => {
         if (!data.fumando) return 0;
-        return (data.cigsDia / (data.cigsPorMaco || 20)) * (data.precoMaco || 0);
-    }, [data]);
+        if (data.cigsDia == null || data.precoMaco == null) return 0;
+        return data.cigsDia * data.precoMaco;
+    }, [data.fumando, data.cigsDia, data.precoMaco]);
 
+    // estatísticas quando PAROU de fumar
     const quitStats = useMemo(() => {
         if (data.fumando || !data.dataParada) return null;
         const start = new Date(data.dataParada);
         if (isNaN(start.getTime())) return null;
+
         const today = new Date();
         const days = Math.max(0, Math.floor((+today - +start) / 86400000));
-        const cigsAvoided = days * (data.cigsDia || 0);
-        const saved = (cigsAvoided / (data.cigsPorMaco || 20)) * (data.precoMaco || 0);
+
+        const macosDia = data.cigsDia ?? 0;               // maços/dia
+        const cigsPorMaco = data.cigsPorMaco ?? 20;       // default 20
+        const preco = data.precoMaco ?? 0;
+
+        const cigsAvoided = days * macosDia * cigsPorMaco;
+        const saved = days * macosDia * preco;
+
         return { days, cigsAvoided, saved };
-    }, [data]);
+    }, [data.fumando, data.dataParada, data.cigsDia, data.cigsPorMaco, data.precoMaco]);
 
     async function handleSalvar() {
         cigsDiaRef.current?.blur();
@@ -64,24 +80,25 @@ export default function Tabagismo() {
         Keyboard.dismiss();
 
         await save(STORAGE_KEY, {
-            ...data,
-            cigsDia: Number(data.cigsDia) || 0,
-            precoMaco: Number(data.precoMaco) || 0,
-            cigsPorMaco: Number(data.cigsPorMaco) || 20,
-            dataParada: data.dataParada?.trim() || "",
+            fumando: data.fumando,
+            cigsDia: data.cigsDia,               
+            precoMaco: data.precoMaco,
+            cigsPorMaco: data.cigsPorMaco,
+            dataParada: (data.dataParada || "").trim() || undefined,
         });
 
         Alert.alert("Pronto!", "Preferências salvas.");
     }
 
     function toggleFumando() {
-        setData(d => ({ ...d, fumando: !d.fumando }));
+        setData((d) => ({ ...d, fumando: !d.fumando }));
     }
 
     return (
         <Screen>
             <Title>Tabagismo</Title>
             <Spacer />
+
             <Card>
                 <Text style={{ fontWeight: "700", marginBottom: 8 }}>Status</Text>
                 <Row gap={10}>
@@ -91,28 +108,31 @@ export default function Tabagismo() {
 
                 <Spacer />
                 <Text style={{ fontWeight: "700", marginBottom: 8 }}>Parâmetros</Text>
+
                 <Input
                     ref={cigsDiaRef}
-                    placeholder="Cigarros por dia (ex.: 10)"
-                    keyboardType="number-pad"
-                    value={String(data.cigsDia ?? "")}
-                    onChangeText={v => setData(d => ({ ...d, cigsDia: parseNum(v) }))}
+                    placeholder="Quantos maços por dia? (ex.: 0.5, 1, 2)"
+                    keyboardType="decimal-pad"
+                    value={data.cigsDia?.toString() ?? ""}
+                    onChangeText={(v) => setData((d) => ({ ...d, cigsDia: parseOptionalNumber(v) }))}
                 />
+
                 <Spacer />
                 <Input
                     ref={precoRef}
-                    placeholder="Preço do maço (R$)"
+                    placeholder="Valor de cada maço (R$)"
                     keyboardType="decimal-pad"
-                    value={String(data.precoMaco ?? "")}
-                    onChangeText={v => setData(d => ({ ...d, precoMaco: parseNum(v) }))}
+                    value={data.precoMaco?.toString() ?? ""}
+                    onChangeText={(v) => setData((d) => ({ ...d, precoMaco: parseOptionalNumber(v) }))}
                 />
+
                 <Spacer />
                 <Input
                     ref={cigsMacoRef}
-                    placeholder="Cigarros por maço (geralmente 20)"
+                    placeholder="Quantos cigarros há em cada maço? (ex.: 20)"
                     keyboardType="number-pad"
-                    value={String(data.cigsPorMaco ?? "")}
-                    onChangeText={v => setData(d => ({ ...d, cigsPorMaco: parseNum(v) }))}
+                    value={data.cigsPorMaco?.toString() ?? ""}
+                    onChangeText={(v) => setData((d) => ({ ...d, cigsPorMaco: parseOptionalNumber(v) }))}
                 />
 
                 {!data.fumando && (
@@ -125,7 +145,7 @@ export default function Tabagismo() {
                             autoCapitalize="none"
                             keyboardType="numbers-and-punctuation"
                             value={data.dataParada ?? ""}
-                            onChangeText={v => setData(d => ({ ...d, dataParada: v }))}
+                            onChangeText={(v) => setData((d) => ({ ...d, dataParada: v }))}
                         />
                     </>
                 )}
@@ -139,8 +159,8 @@ export default function Tabagismo() {
                 <Text style={{ fontWeight: "700", marginBottom: 8 }}>Resumo</Text>
                 {data.fumando ? (
                     <>
-                        <Text>Gasto diário estimado: R$ {dailyCost.toFixed(2)}</Text>
-                        <Text>Gasto mensal (≈30 dias): R$ {(dailyCost * 30).toFixed(2)}</Text>
+                        <Text>Gasto diário estimado: {dailyCost > 0 ? `R$ ${dailyCost.toFixed(2)}` : "—"}</Text>
+                        <Text>Gasto mensal (≈30 dias): {dailyCost > 0 ? `R$ ${(dailyCost * 30).toFixed(2)}` : "—"}</Text>
                     </>
                 ) : quitStats ? (
                     <>
@@ -149,7 +169,7 @@ export default function Tabagismo() {
                         <Text>Economia estimada: R$ {quitStats.saved.toFixed(2)}</Text>
                     </>
                 ) : (
-                    <Text>Informe a data em que parou para ver seu progresso.</Text>
+                    <Text>Informe a data em que parou (e os parâmetros) para ver o progresso.</Text>
                 )}
             </Card>
         </Screen>
